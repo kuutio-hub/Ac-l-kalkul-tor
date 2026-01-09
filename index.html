@@ -212,6 +212,12 @@
             transition: border-color 0.2s, box-shadow 0.2s;
         }
         
+        .input:disabled {
+            background-color: var(--bg-tertiary);
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        
         .select-wrapper {
             display: flex;
             gap: 0.5rem;
@@ -276,7 +282,7 @@
             border-top: none;
         }
         
-        .card-section.results-disabled {
+        .results-disabled {
              opacity: 0.4;
             pointer-events: none;
         }
@@ -695,27 +701,29 @@
                     </div>
                 </div>
                 
-                <div id="total-results-section" class="card-section results-disabled">
+                <div id="total-results-section" class="card-section">
                     <h3 data-lang-key="totalBodyValues">Teljes test értékei</h3>
                      <div class="form-group">
                         <label for="length" data-lang-key="length">Hossz</label>
                         <div class="dimension-input-group">
-                            <input type="number" id="length-input" class="input" min="0" step="1">
-                            <span>mm</span>
+                            <input type="number" id="length-input" class="input" min="0" step="1" disabled>
+                            <span class="unit unit-toggle" id="length-unit-toggle">mm</span>
                         </div>
                     </div>
-                    <div id="results-total" class="results-grid">
-                        <div class="result-item">
-                            <div class="result-item-label" data-lang-key="totalWeight">Teljes tömeg</div>
-                            <div class="result-item-value"><span id="result-total-weight"></span><span class="unit"> kg</span></div>
-                        </div>
-                         <div class="result-item">
-                            <div class="result-item-label" data-lang-key="totalSurface">Teljes felület</div>
-                            <div class="result-item-value"><span id="result-total-surface"></span><span class="unit"> m²</span></div>
-                        </div>
-                         <div class="result-item">
-                            <div class="result-item-label" data-lang-key="totalPrice">Teljes ár</div>
-                            <div class="result-item-value"><span id="result-total-price"></span><span class="unit unit-toggle" id="total-price-unit-toggle">HUF</span></div>
+                    <div id="results-total-wrapper" class="results-disabled">
+                        <div id="results-total" class="results-grid">
+                            <div class="result-item">
+                                <div class="result-item-label" data-lang-key="totalWeight">Teljes tömeg</div>
+                                <div class="result-item-value"><span id="result-total-weight"></span><span class="unit"> kg</span></div>
+                            </div>
+                             <div class="result-item">
+                                <div class="result-item-label" data-lang-key="totalSurface">Teljes felület</div>
+                                <div class="result-item-value"><span id="result-total-surface"></span><span class="unit"> m²</span></div>
+                            </div>
+                             <div class="result-item">
+                                <div class="result-item-label" data-lang-key="totalPrice">Teljes ár</div>
+                                <div class="result-item-value"><span id="result-total-price"></span><span class="unit unit-toggle" id="total-price-unit-toggle">HUF</span></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -861,7 +869,7 @@
             let state = {
                 lang: 'hu', theme: 'dark', eurHufRate: 400.0, priceCurrency: 'HUF',
                 customMaterials: {}, favorites: [], productFavorites: [],
-                crossSectionUnit: 'mm2', selectedMaterial: null, priceHufKg: 0,
+                crossSectionUnit: 'mm2', lengthUnit: 'mm', selectedMaterial: null, priceHufKg: 0,
                 charts: { current: null }
             };
             
@@ -869,8 +877,8 @@
             const domIds = [
                 'main-container', 'resizer', 'lang-selector', 'theme-toggle', 'theme-icon-sun', 'theme-icon-moon', 
                 'material-select-custom', 'favorite-toggle-btn', 'product-type-select', 'product-favorite-toggle-btn', 
-                'standard-size-container', 'standard-size-select', 'dimension-fields', 'length-input', 
-                'per-meter-results-section', 'total-results-section', 'result-cross-section', 'cross-section-unit-toggle', 'result-weight-meter', 'result-surface-area', 
+                'standard-size-container', 'standard-size-select', 'dimension-fields', 'length-input', 'length-unit-toggle',
+                'per-meter-results-section', 'results-total-wrapper', 'result-cross-section', 'cross-section-unit-toggle', 'result-weight-meter', 'result-surface-area', 
                 'result-total-weight', 'result-total-surface', 'result-total-price', 'total-price-unit-toggle', 
                 'eur-huf-rate', 'exchange-rate-chart-btn', 'price-per-kg', 'price-per-meter', 'price-unit-toggle-kg', 
                 'price-unit-toggle-m', 'manage-materials-btn', 'materials-modal', 
@@ -1179,40 +1187,52 @@
                 const allMaterials = { ...MATERIAL_DENSITIES, ...state.customMaterials };
                 const density = allMaterials[materialName] || 0;
                 const dims = getDimensions();
-                const lengthMm = parseFloat(DOMElements.lengthInput.value) || 0;
-                const lengthM = lengthMm / 1000;
-
+                
                 const crossSectionMm2 = calculateCrossSection(productType, dims);
                 const weightPerMeter = crossSectionMm2 / 1000000 * density;
                 const surfaceAreaPerMeter = calculateSurfaceAreaPerMeter(productType, dims);
                 
+                const lengthValue = parseFloat(DOMElements.lengthInput.value) || 0;
+                const lengthM = state.lengthUnit === 'm' ? lengthValue : lengthValue / 1000;
+
                 const perMeterFields = [DOMElements.resultCrossSection, DOMElements.resultWeightMeter, DOMElements.resultSurfaceArea];
                 const totalFields = [DOMElements.resultTotalWeight, DOMElements.resultTotalSurface, DOMElements.resultTotalPrice];
+                
+                DOMElements.lengthUnitToggle.innerText = state.lengthUnit;
+                DOMElements.crossSectionUnitToggle.innerText = (state.crossSectionUnit === 'm2') ? 'm²' : 'mm²';
 
                 if (weightPerMeter > 0) {
+                    // Per meter section is active
                     DOMElements.perMeterResultsSection.classList.remove('results-disabled');
                     DOMElements.resultCrossSection.innerText = (state.crossSectionUnit === 'm2') ? (crossSectionMm2 / 1000000).toExponential(3) : crossSectionMm2.toFixed(2);
                     DOMElements.resultWeightMeter.innerText = weightPerMeter.toFixed(3);
                     DOMElements.resultSurfaceArea.innerText = surfaceAreaPerMeter.toFixed(4);
+                    
+                    // Length input is active
+                    DOMElements.lengthInput.disabled = false;
 
+                    // Check for totals
                     if (lengthM > 0) {
-                        DOMElements.totalResultsSection.classList.remove('results-disabled');
+                        DOMElements.resultsTotalWrapper.classList.remove('results-disabled');
                         const endCapAreaM2 = 2 * (crossSectionMm2 / 1000000);
                         DOMElements.resultTotalWeight.innerText = (weightPerMeter * lengthM).toFixed(3);
                         DOMElements.resultTotalSurface.innerText = (surfaceAreaPerMeter * lengthM + endCapAreaM2).toFixed(4);
                     } else {
-                        DOMElements.totalResultsSection.classList.add('results-disabled');
+                        DOMElements.resultsTotalWrapper.classList.add('results-disabled');
                         totalFields.forEach(field => field.innerText = '');
                     }
-
                 } else {
+                    // Everything is inactive
                     DOMElements.perMeterResultsSection.classList.add('results-disabled');
-                    DOMElements.totalResultsSection.classList.add('results-disabled');
                     perMeterFields.forEach(field => field.innerText = '');
+
+                    DOMElements.lengthInput.disabled = true;
+                    DOMElements.lengthInput.value = '';
+
+                    DOMElements.resultsTotalWrapper.classList.add('results-disabled');
                     totalFields.forEach(field => field.innerText = '');
                 }
                 
-                DOMElements.crossSectionUnitToggle.innerText = (state.crossSectionUnit === 'm2') ? 'm²' : 'mm²';
                 updatePrices();
             }
 
@@ -1234,8 +1254,9 @@
                     storage.saveState();
                 }
 
+                const lengthValue = parseFloat(DOMElements.lengthInput.value) || 0;
+                const lengthM = state.lengthUnit === 'm' ? lengthValue : lengthValue / 1000;
                 const rate = state.eurHufRate;
-                const lengthM = (parseFloat(DOMElements.lengthInput.value) || 0) / 1000;
 
                 const valuePerKgCurrentCurrency = state.priceCurrency === 'HUF' ? state.priceHufKg : (rate > 0 ? state.priceHufKg / rate : 0);
                 const valuePerMeterCurrentCurrency = valuePerKgCurrentCurrency * weightPerMeter;
@@ -1381,10 +1402,16 @@
             function setupEventListeners() {
                 DOMElements.langSelector.addEventListener('change', (e) => setLanguage(e.target.value));
                 DOMElements.themeToggle.addEventListener('click', () => applyTheme(state.theme === 'light' ? 'dark' : 'light'));
+                
                 DOMElements.crossSectionUnitToggle.addEventListener('click', () => {
                     state.crossSectionUnit = state.crossSectionUnit === 'mm2' ? 'm2' : 'mm2';
                     storage.saveState(); calculate();
                 });
+                DOMElements.lengthUnitToggle.addEventListener('click', () => {
+                    state.lengthUnit = state.lengthUnit === 'mm' ? 'm' : 'mm';
+                    storage.saveState(); calculate();
+                });
+
                 DOMElements.favoriteToggleBtn.addEventListener('click', () => {
                     const name = state.selectedMaterial;
                     const index = state.favorites.indexOf(name);
