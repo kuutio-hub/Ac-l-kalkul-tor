@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acél tömeg és ár kalkulátor</title>
+    <title>Metal Calculator</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -180,10 +180,7 @@
             padding: 0.25rem 0.5rem;
             background-color: var(--bg-primary);
             border-radius: 4px;
-            margin-top: 0.4rem;
-            text-align: right;
-            max-width: 200px;
-            float: right;
+            margin-top: 0.5rem;
         }
 
         .input, .select, .custom-select-display {
@@ -561,7 +558,7 @@
     <div class="container">
         <header>
             <div class="header-title">
-                <h1 data-lang-key="title">Acél tömeg és ár kalkulátor</h1>
+                <h1 data-lang-key="title">Metal Calculator</h1>
             </div>
             <div class="controls">
                 <select id="lang-selector" class="lang-select"></select>
@@ -709,7 +706,7 @@
         </main>
         
         <footer class="footer">
-            <p>&copy; <span id="copyright-year"></span> Acél Kalkulátor. <span data-lang-key="allRightsReserved">Minden jog fenntartva.</span></p>
+            <p>&copy; <span id="copyright-year"></span> Metal Calculator. <span data-lang-key="allRightsReserved">Minden jog fenntartva.</span></p>
         </footer>
     </div>
     
@@ -802,7 +799,7 @@
 
             const LANG = {
                 hu: {
-                    title: "Acél tömeg és ár kalkulátor",
+                    title: "Metal Calculator",
                     inputParameters: "Bemeneti paraméterek",
                     material: "Anyag", productType: "Terméktípus", results: "Számítási eredmények",
                     crossSection: "Keresztmetszet", weightPerMeter: "Tömeg / méter", surfacePerMeter: "Felület / méter",
@@ -833,7 +830,7 @@
                     pdfCurrency: "Valuta", pdfExchangeRate: "Árfolyam",
                 },
                 en: {
-                    title: "Steel Weight & Price Calculator",
+                    title: "Metal Calculator",
                     inputParameters: "Input Parameters",
                     material: "Material", productType: "Product Type", results: "Calculation Results",
                     crossSection: "Cross-section", weightPerMeter: "Weight / meter", surfacePerMeter: "Surface / meter",
@@ -878,7 +875,7 @@
             let state = {
                 lang: 'hu', theme: 'dark', eurHufRate: 400.0, priceCurrency: 'HUF',
                 customMaterials: {}, favorites: [], productFavorites: [], savedPrices: [],
-                crossSectionUnit: 'mm2', selectedMaterial: null,
+                crossSectionUnit: 'mm2', selectedMaterial: null, priceHufKg: 0,
                 charts: { exchangeRate: null, savedPrices: null, weightDimension: null }
             };
             
@@ -938,6 +935,7 @@
                         const loadedState = JSON.parse(saved);
                         if (!Array.isArray(loadedState.favorites)) loadedState.favorites = [];
                         if (!Array.isArray(loadedState.productFavorites)) loadedState.productFavorites = [];
+                        if (loadedState.priceHufKg === undefined) loadedState.priceHufKg = 0;
                         Object.assign(state, loadedState);
                     }
                 }
@@ -1235,21 +1233,25 @@
             function calculatePrices(sourceEl = null) {
                 if (priceUpdateLock) return;
                 priceUpdateLock = true;
+
                 const weightPerMeter = parseFloat(DOMElements.resultWeightMeter.innerText) || 0;
                 const rate = state.eurHufRate;
-                let valueInHufKg = 0;
+                
                 if (sourceEl) {
                     const value = parseFloat(sourceEl.value) || 0;
                     const unit = sourceEl.dataset.unit;
                     if (unit === 'kg') {
-                        valueInHufKg = state.priceCurrency === 'HUF' ? value : value * rate;
+                        state.priceHufKg = state.priceCurrency === 'HUF' ? value : value * rate;
                     } else if (unit === 'm' && weightPerMeter > 0) {
                         const valuePerMeter = state.priceCurrency === 'HUF' ? value : value * rate;
-                        valueInHufKg = valuePerMeter / weightPerMeter;
+                        state.priceHufKg = valuePerMeter / weightPerMeter;
+                    } else if (unit === 'm' && weightPerMeter <= 0) {
+                        state.priceHufKg = 0;
                     }
-                    DOMElements.pricePerKg.dataset.valueHuf = valueInHufKg;
+                    storage.saveState();
                 }
                 updatePriceDisplay();
+                
                 priceUpdateLock = false;
             }
 
@@ -1257,9 +1259,8 @@
                 const weightPerMeter = parseFloat(DOMElements.resultWeightMeter.innerText) || 0;
                 const rate = state.eurHufRate;
                 const lengthM = (parseFloat(DOMElements.lengthInput.value) || 0) / 1000;
-                const valueHufKg = parseFloat(DOMElements.pricePerKg.dataset.valueHuf) || 0;
                 
-                const valuePerKg = state.priceCurrency === 'HUF' ? valueHufKg : valueHufKg / rate;
+                const valuePerKg = state.priceCurrency === 'HUF' ? state.priceHufKg : state.priceHufKg / rate;
                 const valuePerMeter = valuePerKg * weightPerMeter;
 
                 if (document.activeElement !== DOMElements.pricePerKg) {
@@ -1269,7 +1270,7 @@
                    DOMElements.pricePerMeter.value = valuePerMeter > 0 ? valuePerMeter.toFixed(2) : '';
                 }
                 
-                const totalPrice = valueHufKg * weightPerMeter * lengthM;
+                const totalPrice = state.priceHufKg * weightPerMeter * lengthM;
                 DOMElements.resultTotalPrice.innerText = state.priceCurrency === 'HUF' 
                     ? totalPrice.toFixed(2)
                     : (totalPrice / rate).toFixed(2);
@@ -1376,7 +1377,7 @@
             
             DOMElements.standardSizeSelect.addEventListener('change', fillDimensionsFromStandardSize);
             
-            document.querySelector('.card').addEventListener('input', (e) => {
+            document.querySelector('main').addEventListener('input', (e) => {
                 if (e.target.matches('.dimension-input') || e.target.id === 'length-input') {
                     if (e.target.matches('.dimension-input')) {
                         DOMElements.standardSizeSelect.value = "";
@@ -1435,7 +1436,7 @@
 
             DOMElements.savePriceBtn.addEventListener('click', () => {
                 const materialName = state.selectedMaterial;
-                const valueHufKg = parseFloat(DOMElements.pricePerKg.dataset.valueHuf) || 0;
+                const valueHufKg = state.priceHufKg;
                 if (materialName && valueHufKg > 0) {
                     state.savedPrices.push({
                         date: new Date().toISOString().split('T')[0],

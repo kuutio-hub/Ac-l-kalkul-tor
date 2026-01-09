@@ -1,0 +1,41 @@
+
+Készíts egy teljes, reszponzív, modern, ipari jellegű, magyar nyelvű webalkalmazást „Metal Calculator” néven.
+A webappnak GitHub Pagesen azonnal futnia kell, mindenféle utólagos módosítás nélkül.
+
+A projekt legyen egyetlen index.html fájl, amely tartalmazza a HTML-t, a CSS-t `<style>` tagekben, és a JavaScriptet `<script>` tagekben. Ne használj semmilyen build rendszert vagy külső modult, kivéve CDN-ről betöltött jsPDF és Chart.js könyvtárakat. Minden legyen relatív és fusson offline is (kivéve az árfolyam API-t). A főcím és a lábléc is a "Metal Calculator" nevet használja.
+
+1.  **ANYAGSŰRŰSÉG ADATBÁZIS**
+    Végezz kutatást és tárolj egy JS objektumban legalább 20+ fém és műanyag sűrűségi adatát (kg/m³). A lista legyen csoportosítva (szerkezeti acél, rozsdamentes, szerszámacél, könnyűfém stb.), ahogy a kódban is látható.
+
+2.  **ANYAGVÁLASZTÓ IMPLEMENTÁCIÓ**
+    -   Hozz létre egy egyedi, lenyitható listát (`custom select dropdown`).
+    -   A lista legyen csoportosított a fenti kategóriák szerint (pl. "Szerkezeti acélok").
+    -   A csoportok legyenek alapértelmezetten összecsukva, kivéve a "Kedvencek" csoportot, ami mindig nyitva van.
+    -   A csoport nevére kattintva a lista lenyílik/összecsukódik.
+    -   A kiválasztott anyag sűrűsége jelenjen meg logikusan, közvetlenül az anyagválasztó mező alatt.
+
+3.  **TERMÉKTÍPUSOK ÉS SZABVÁNYMÉRETEK**
+    -   A felhasználó választhasson a következő terméktípusok közül: Köracél, Négyzetacél, Laposacél, Cső, Zártszelvény, I-szelvény, U-szelvény, T-szelvény.
+    -   Ha a felhasználó szelvényt (I, U) választ, jelenjen meg egy extra "Szabványméret" legördülő menü.
+    -   Ez a menü tartalmazzon valós, szabványos méreteket (pl. IPE-120, HEA-160, UNP-100). Tárold ezek adatait (magasság, szélesség, vastagságok) egy belső JS objektumban.
+    -   Szabványméret kiválasztásakor a program automatikusan töltse ki a releváns méretmezőket a pontos adatokkal. Ha a felhasználó manuálisan módosít egy méretet, a szabványméret választó álljon vissza alaphelyzetbe.
+
+4.  **TÖMEG- ÉS FELÜLETSZÁMÍTÁS**
+    -   Minden formára írj pontos számítási logikát a keresztmetszetre (mm² és m² között váltható), a méterenkénti tömegre (kg/m), és a méterenkénti felületre (m²/m).
+    -   Kalkuláld a teljes testre vonatkozó értékeket is (teljes tömeg, teljes felület), ha a felhasználó megadja a hosszúságot.
+
+5.  **ÁRSZÁMÍTÓ MODUL (KÉTIRÁNYÚ ÉS AZONNALI)**
+    -   A felhasználó megadhatja az árat Ft/kg vagy Ft/m alapon.
+    -   **Kritikus követelmény:** Bármelyik ármezőbe (`Ár/kg` vagy `Ár/méter`) ír a felhasználó, a másik mező és a "Teljes ár" értéke **valós időben, gépelés közben automatikusan frissüljön**. A számítás alapja egy belső, HUF/kg-ban tárolt állapotváltozó legyen.
+    -   **Valutaváltás:** Támogassa a HUF és EUR valutákat. Legyen egy API hívás az aktuális EUR/HUF árfolyam lekérdezésére (`https://api.frankfurter.app/`), manuális felülírási lehetőséggel. Amikor a felhasználó a valuta (HUF/EUR) váltó gombra kattint, **az összes ármező (`Ár/kg`, `Ár/méter`, `Teljes ár`) értéke azonnal számolódjon át** az új valutára.
+
+6.  **FUNKCIÓK ÉS UI**
+    -   **Sötét mód:** Automatikus (prefers-color-scheme) és manuális kapcsolóval, az állapot mentése localStorage-ba.
+    -   **Saját anyagok:** A felhasználó modális ablakban adhasson hozzá, szerkeszthessen és törölhessen saját anyagokat. Az adatok mentése localStorage-ba.
+    -   **Kedvencek:** Anyagok és terméktípusok is jelölhetők kedvencnek egy csillag ikonnal. A kedvencek a listák tetején, külön csoportban jelenjenek meg.
+    -   **PDF Export:** jsPDF segítségével generáljon egy letisztult, ipari jellegű PDF dokumentumot a számítás részleteiről.
+    -   **Többnyelvűség:** A feliratok legyenek cserélhetők (magyar, angol alapból), a választás mentődjön localStorage-ba. A szövegeket JS objektumban tárold.
+    -   **Grafikonok:** Chart.js segítségével, modális ablakban jeleníts meg árfolyam-, mentett ár- és tömeg/méret változás grafikont.
+    -   **Elrendezés:** Modern, letisztult, kétoszlopos elrendezés nagyobb képernyőn, ami mobilra reszponzívan egy oszlopra vált. Ipari jellegű ikonok és kontrasztos színek használata.
+    -   **Lábléc:** A copyright év legyen dinamikus, de soha ne legyen kevesebb, mint 2026.
+    -   **Reszponzivitás:** Minden elem, beleértve a beviteli mezőket és gombokat, legyen reszponzív és jól használható mobilon is.
