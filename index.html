@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html lang="hu" data-theme="dark">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF--8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Metal Calculator</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -47,6 +46,15 @@
             line-height: 1.5;
             font-size: 14px;
             transition: background-color 0.3s, color 0.3s;
+        }
+        
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
         }
 
         .container {
@@ -145,14 +153,16 @@
             border-radius: 8px;
             box-shadow: 0 1px 3px var(--shadow-color);
             padding: 1rem;
-            min-width: 0; /* Important for grid resizing */
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
         }
         
         .card-header {
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            margin-bottom: 1rem;
             padding-bottom: 0.6rem;
             border-bottom: 1px solid var(--border-color);
         }
@@ -166,6 +176,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            flex-shrink: 0;
         }
 
         .card-header-icon svg {
@@ -187,22 +198,6 @@
             font-weight: 500;
             margin-bottom: 0.3rem;
             font-size: 0.85rem;
-            color: var(--text-secondary);
-        }
-        
-        #saved-price-info {
-            font-size: 0.85rem;
-            padding: 0.5rem;
-            background-color: var(--bg-primary);
-            border-radius: 4px;
-            margin-top: 0.8rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            min-height: 40px;
-        }
-
-        #saved-price-info .placeholder {
             color: var(--text-secondary);
         }
 
@@ -262,6 +257,7 @@
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
             gap: 0.8rem;
+            margin-top: auto;
         }
         
         .results-grid {
@@ -270,13 +266,22 @@
             gap: 0.8rem;
         }
         
-        .results-section {
-            margin-top: 1.25rem;
+        .card-section {
             padding-top: 1rem;
             border-top: 1px solid var(--border-color);
+            transition: opacity 0.3s;
+        }
+        .card-section:first-child {
+            padding-top: 0;
+            border-top: none;
         }
         
-        .results-section h3 {
+        .card-section.results-disabled {
+             opacity: 0.4;
+            pointer-events: none;
+        }
+        
+        .card-section h3 {
             font-size: 0.9rem;
             font-weight: 600;
             margin-bottom: 0.75rem;
@@ -300,6 +305,7 @@
             font-size: 1.05rem;
             font-weight: 600;
             word-break: break-all;
+            min-height: 1.2em; /* Prevents layout shift when text is empty */
         }
         
         .result-item-value .unit {
@@ -327,7 +333,6 @@
             display: flex;
             gap: 1rem;
             align-items: center;
-            margin-bottom: 0.8rem;
         }
         
         .currency-panel .input {
@@ -339,7 +344,6 @@
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
-            width: 100%;
             padding: 0.5rem 0.8rem;
             border: none;
             border-radius: 6px;
@@ -353,6 +357,10 @@
             width: auto;
             padding: 0.3rem 0.8rem;
         }
+        
+        .btn-full-width {
+            width: 100%;
+        }
 
         .btn-primary {
             background-color: var(--bg-accent);
@@ -362,16 +370,7 @@
         .btn-primary:hover {
             opacity: 0.9;
         }
-
-        .btn-secondary {
-            background-color: var(--bg-tertiary);
-            color: var(--text-primary);
-        }
-
-        .btn-secondary:hover {
-            opacity: 0.9;
-        }
-
+        
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -394,9 +393,11 @@
             padding: 1.5rem;
             border-radius: 8px;
             max-width: 90%;
-            width: 500px;
+            width: 600px;
             max-height: 90vh;
             overflow-y: auto;
+            display: flex;
+            flex-direction: column;
         }
 
         .modal-header {
@@ -404,11 +405,6 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 1.5rem;
-        }
-        
-        .modal-header-controls {
-            display: flex;
-            gap: 0.5rem;
         }
 
         .modal-header h3 {
@@ -425,7 +421,7 @@
 
         .material-list {
             list-style: none;
-            max-height: 300px;
+            max-height: 250px;
             overflow-y: auto;
             border: 1px solid var(--border-color);
             border-radius: 6px;
@@ -578,8 +574,6 @@
         .custom-select-options .option:hover, .custom-select-options .option.selected {
             background-color: var(--highlight-color);
         }
-
-
     </style>
 </head>
 <body>
@@ -639,100 +633,93 @@
                 </div>
 
                 <div id="dimension-fields" class="dimension-fields-container"></div>
-                
-                 <div class="form-group" style="margin-top: 1rem;">
-                    <label for="length" data-lang-key="length">Hossz (opcionális)</label>
-                    <div class="dimension-input-group">
-                        <input type="number" id="length-input" class="input" min="0" step="1">
-                        <span>mm</span>
-                    </div>
-                </div>
+
             </div>
             
             <div class="resizer" id="resizer"></div>
 
             <div class="card">
-                 <div class="card-header">
+                <div class="card-header">
                     <div class="card-header-icon">
                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"></path><line x1="16" y1="8" x2="2" y2="22"></line><line x1="17.5" y1="15" x2="9" y2="15"></line></svg>
                     </div>
                     <h2 data-lang-key="results">Számítási eredmények</h2>
                 </div>
+
+                <div class="card-section">
+                    <h3 data-lang-key="priceCalculation">Árszámítás</h3>
+                    <div class="form-group">
+                        <div class="currency-panel">
+                            <input type="number" id="eur-huf-rate" class="input" min="0" step="0.01">
+                            <span>EUR/HUF</span>
+                            <button id="exchange-rate-chart-btn" class="control-btn" data-lang-title="exchangeRateChart">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="results-grid">
+                        <div class="form-group">
+                            <label for="price-per-kg" data-lang-key="pricePerKg">Ár / kg</label>
+                            <div class="dimension-input-group">
+                                <input type="number" id="price-per-kg" class="input price-input" data-unit="kg" min="0" step="0.01">
+                                <span class="unit unit-toggle" id="price-unit-toggle-kg">HUF</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="price-per-meter" data-lang-key="pricePerMeter">Ár / méter</label>
+                            <div class="dimension-input-group">
+                                <input type="number" id="price-per-meter" class="input price-input" data-unit="m" min="0" step="0.01">
+                                <span class="unit unit-toggle" id="price-unit-toggle-m">HUF</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 
-                <div class="results-section">
+                <div id="per-meter-results-section" class="card-section results-disabled">
                     <h3 data-lang-key="perMeterValues">Méterenkénti értékek</h3>
                     <div id="results-per-meter" class="results-grid">
                         <div class="result-item">
                             <div class="result-item-label" data-lang-key="crossSection">Keresztmetszet</div>
                             <div class="result-item-value">
-                                <span id="result-cross-section">0</span><span id="cross-section-unit-toggle" class="unit unit-toggle">mm²</span>
+                                <span id="result-cross-section"></span><span id="cross-section-unit-toggle" class="unit unit-toggle">mm²</span>
                             </div>
                         </div>
                         <div class="result-item">
                             <div class="result-item-label" data-lang-key="weightPerMeter">Tömeg / méter</div>
-                            <div class="result-item-value"><span id="result-weight-meter">0</span><span class="unit"> kg/m</span></div>
+                            <div class="result-item-value"><span id="result-weight-meter"></span><span class="unit"> kg/m</span></div>
                         </div>
                          <div class="result-item">
                             <div class="result-item-label" data-lang-key="surfacePerMeter">Felület / méter</div>
-                            <div class="result-item-value"><span id="result-surface-area">0</span><span class="unit"> m²/m</span></div>
+                            <div class="result-item-value"><span id="result-surface-area"></span><span class="unit"> m²/m</span></div>
                         </div>
                     </div>
                 </div>
                 
-                 <div class="results-section">
+                <div id="total-results-section" class="card-section results-disabled">
                     <h3 data-lang-key="totalBodyValues">Teljes test értékei</h3>
+                     <div class="form-group">
+                        <label for="length" data-lang-key="length">Hossz</label>
+                        <div class="dimension-input-group">
+                            <input type="number" id="length-input" class="input" min="0" step="1">
+                            <span>mm</span>
+                        </div>
+                    </div>
                     <div id="results-total" class="results-grid">
                         <div class="result-item">
                             <div class="result-item-label" data-lang-key="totalWeight">Teljes tömeg</div>
-                            <div class="result-item-value"><span id="result-total-weight">0</span><span class="unit"> kg</span></div>
+                            <div class="result-item-value"><span id="result-total-weight"></span><span class="unit"> kg</span></div>
                         </div>
                          <div class="result-item">
                             <div class="result-item-label" data-lang-key="totalSurface">Teljes felület</div>
-                            <div class="result-item-value"><span id="result-total-surface">0</span><span class="unit"> m²</span></div>
+                            <div class="result-item-value"><span id="result-total-surface"></span><span class="unit"> m²</span></div>
                         </div>
                          <div class="result-item">
                             <div class="result-item-label" data-lang-key="totalPrice">Teljes ár</div>
-                            <div class="result-item-value"><span id="result-total-price">0</span><span class="unit unit-toggle" id="total-price-unit-toggle">HUF</span></div>
+                            <div class="result-item-value"><span id="result-total-price"></span><span class="unit unit-toggle" id="total-price-unit-toggle">HUF</span></div>
                         </div>
                     </div>
                 </div>
 
-                <div class="form-group" style="margin-top: 1.5rem;">
-                     <label data-lang-key="priceCalculation">Árszámítás</label>
-                     <div class="currency-panel">
-                        <input type="number" id="eur-huf-rate" class="input" min="0" step="0.01">
-                        <span>EUR/HUF</span>
-                        <button id="exchange-rate-chart-btn" class="control-btn" data-lang-title="exchangeRateChart">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-                        </button>
-                     </div>
-                </div>
-                
-                <div class="results-grid">
-                    <div class="form-group">
-                        <label for="price-per-kg" data-lang-key="pricePerKg">Ár / kg</label>
-                        <div class="dimension-input-group">
-                            <input type="number" id="price-per-kg" class="input price-input" data-unit="kg" min="0" step="0.01">
-                            <span class="unit unit-toggle" id="price-unit-toggle-kg">HUF</span>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="price-per-meter" data-lang-key="pricePerMeter">Ár / méter</label>
-                        <div class="dimension-input-group">
-                            <input type="number" id="price-per-meter" class="input price-input" data-unit="m" min="0" step="0.01">
-                             <span class="unit unit-toggle" id="price-unit-toggle-m">HUF</span>
-                        </div>
-                    </div>
-                </div>
-                 <div id="saved-price-info"></div>
-                
-                <div style="display: flex; gap: 1rem; margin-top: 1rem;">
-                    <button id="save-price-btn" class="btn btn-secondary" data-lang-key="savePrice">Pillanatnyi ár mentése</button>
-                    <button id="pdf-export-btn" class="btn btn-primary" data-lang-key="exportPdf">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                        PDF exportálás
-                    </button>
-                </div>
             </div>
         </main>
         
@@ -768,19 +755,14 @@
         <div id="chart-popup-content" class="modal-content">
              <div class="modal-header">
                 <h3 id="chart-popup-title"></h3>
-                <div class="modal-header-controls" id="chart-popup-controls"></div>
                 <button class="modal-close-btn">&times;</button>
             </div>
             <div id="chart-popup-body"></div>
         </div>
     </div>
     
-    <script type="module">
-        import { db } from './database.js';
-
+    <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const { jsPDF } = window.jspdf;
-
             const MATERIAL_DENSITIES = {
                 "S235": 7850, "S275": 7850, "S355": 7850,
                 "Ezüstacél (1.2210)": 7810,
@@ -821,11 +803,10 @@
             const LANG = {
                 hu: {
                     title: "Metal Calculator",
-                    inputParameters: "Bemeneti paraméterek",
-                    material: "Anyag", productType: "Terméktípus", results: "Számítási eredmények",
+                    inputParameters: "Bemeneti paraméterek", material: "Anyag", productType: "Terméktípus", results: "Számítási eredmények",
                     crossSection: "Keresztmetszet", weightPerMeter: "Tömeg / méter", surfacePerMeter: "Felület / méter",
                     priceCalculation: "Árszámítás", pricePerKg: "Ár / kg", pricePerMeter: "Ár / méter",
-                    exportPdf: "PDF exportálás", allRightsReserved: "Minden jog fenntartva.",
+                    allRightsReserved: "Minden jog fenntartva.",
                     manageMaterials: "Anyagok kezelése", addMaterial: "Új anyag hozzáadása", materialList: "Anyaglista",
                     materialName: "Anyag neve", density: "Sűrűség", add: "Hozzáad",
                     customMaterials: "Saját anyagok", favorites: "Kedvencek",
@@ -833,10 +814,7 @@
                     specialSteels: "Különleges acélok", lightMetals: "Könnyűfémek", nonFerrousMetals: "Színesfémek",
                     castIrons: "Öntöttvasak", specialAlloys: "Speciális ötvözetek", plastics: "Műanyagok",
                     toggleFavorite: "Kedvencnek jelölés", edit: "Szerkeszt", delete: "Töröl", save: "Ment", cancel: "Mégse",
-                    chartsTitle: "Grafikonok", exchangeRateChart: "EUR/HUF árfolyam", savedPricesChart: "Mentett anyagárak",
-                    latestSavedPrice: "Legutóbbi mentett ár", noSavedPrice: "Nincs mentett ár ehhez az anyaghoz.",
-                    addNewPriceEntry: "Új ár rögzítése", priceDate: "Dátum",
-                    savePrice: "Pillanatnyi ár mentése", priceSaved: "Ár elmentve!",
+                    chartsTitle: "Grafikonok", exchangeRateChart: "EUR/HUF árfolyam",
                     perMeterValues: "Méterenkénti értékek", totalBodyValues: "Teljes test értékei",
                     totalWeight: "Teljes tömeg", totalSurface: "Teljes felület", totalPrice: "Teljes ár",
                     roundBar: "Köracél", squareBar: "Négyzetacél", flatBar: "Laposacél", pipe: "Cső", tube: "Zártszelvény",
@@ -845,29 +823,19 @@
                     diameter: "Átmérő", sideA: "A oldal", width: "Szélesség", height: "Magasság",
                     outerDiameter: "Külső átmérő", wallThickness: "Falvastagság", length: "Hossz",
                     webThickness: "Gerinc vastagság", flangeThickness: "Öv vastagság",
-                    pdfTitle: "Számítási jegyzőkönyv", pdfDate: "Dátum", pdfInputParams: "Bemeneti adatok",
-                    pdfCalcResults: "Számított értékek", pdfDimensions: "Méretek", pdfPriceInfo: "Ár információk",
-                    pdfCurrency: "Valuta", pdfExchangeRate: "Árfolyam",
-                    confirmDeletePrice: "Biztosan törli ezt a mentett árat?",
-                    period: { "30": "30 nap", "90": "90 nap", "365": "1 év" }
                 },
                 en: {
-                    title: "Metal Calculator",
-                    inputParameters: "Input Parameters",
-                    material: "Material", productType: "Product Type", results: "Calculation Results",
+                    title: "Metal Calculator", inputParameters: "Input Parameters", material: "Material", productType: "Product Type", results: "Calculation Results",
                     crossSection: "Cross-section", weightPerMeter: "Weight / meter", surfacePerMeter: "Surface / meter",
                     priceCalculation: "Price Calculation", pricePerKg: "Price / kg", pricePerMeter: "Price / meter",
-                    exportPdf: "Export to PDF", allRightsReserved: "All rights reserved.",
+                    allRightsReserved: "All rights reserved.",
                     manageMaterials: "Manage Materials", addMaterial: "Add New Material", materialList: "Material List",
-                    materialName: "Material Name", density: "Density", add: "Add", customMaterials: "Custom Materials",
-                    favorites: "Favorites", structuralSteels: "Structural Steels", stainlessSteels: "Stainless Steels",
+                    materialName: "Material Name", density: "Density", add: "Add",
+                    customMaterials: "Custom Materials", favorites: "Favorites", structuralSteels: "Structural Steels", stainlessSteels: "Stainless Steels",
                     toolSteels: "Tool Steels", specialSteels: "Special Steels", lightMetals: "Light Metals",
-                    nonFerrousMetals: "Non-Ferrous Metals", castIrons: "Cast Irons", specialAlloys: "Special Alloys",
-                    plastics: "Plastics", toggleFavorite: "Toggle Favorite", edit: "Edit", delete: "Delete", save: "Save", cancel: "Cancel",
-                    chartsTitle: "Charts", exchangeRateChart: "EUR/HUF Exchange Rate", savedPricesChart: "Saved Material Prices",
-                    latestSavedPrice: "Last saved price", noSavedPrice: "No saved price for this material.",
-                    addNewPriceEntry: "Add New Price Entry", priceDate: "Date",
-                    savePrice: "Save Current Price", priceSaved: "Price saved!",
+                    nonFerrousMetals: "Non-Ferrous Metals", castIrons: "Cast Irons", specialAlloys: "Special Alloys", plastics: "Plastics",
+                    toggleFavorite: "Toggle Favorite", edit: "Edit", delete: "Delete", save: "Save", cancel: "Cancel",
+                    chartsTitle: "Charts", exchangeRateChart: "EUR/HUF Exchange Rate",
                     perMeterValues: "Values Per Meter", totalBodyValues: "Total Body Values",
                     totalWeight: "Total Weight", totalSurface: "Total Surface", totalPrice: "Total Price",
                     roundBar: "Round Bar", squareBar: "Square Bar", flatBar: "Flat Bar", pipe: "Pipe", tube: "Tube",
@@ -876,11 +844,6 @@
                     diameter: "Diameter", sideA: "Side A", width: "Width", height: "Height",
                     outerDiameter: "Outer Diameter", wallThickness: "Wall Thickness", length: "Length",
                     webThickness: "Web Thickness", flangeThickness: "Flange Thickness",
-                    pdfTitle: "Calculation Report", pdfDate: "Date", pdfInputParams: "Input Data",
-                    pdfCalcResults: "Calculated Values", pdfDimensions: "Dimensions", pdfPriceInfo: "Price Information",
-                    pdfCurrency: "Currency", pdfExchangeRate: "Exchange Rate",
-                    confirmDeletePrice: "Are you sure you want to delete this price record?",
-                    period: { "30": "30 days", "90": "90 days", "365": "1 year" }
                 }
             };
 
@@ -897,7 +860,7 @@
 
             let state = {
                 lang: 'hu', theme: 'dark', eurHufRate: 400.0, priceCurrency: 'HUF',
-                customMaterials: {}, favorites: [], productFavorites: [], savedPrices: [],
+                customMaterials: {}, favorites: [], productFavorites: [],
                 crossSectionUnit: 'mm2', selectedMaterial: null, priceHufKg: 0,
                 charts: { current: null }
             };
@@ -907,12 +870,12 @@
                 'main-container', 'resizer', 'lang-selector', 'theme-toggle', 'theme-icon-sun', 'theme-icon-moon', 
                 'material-select-custom', 'favorite-toggle-btn', 'product-type-select', 'product-favorite-toggle-btn', 
                 'standard-size-container', 'standard-size-select', 'dimension-fields', 'length-input', 
-                'result-cross-section', 'cross-section-unit-toggle', 'result-weight-meter', 'result-surface-area', 
+                'per-meter-results-section', 'total-results-section', 'result-cross-section', 'cross-section-unit-toggle', 'result-weight-meter', 'result-surface-area', 
                 'result-total-weight', 'result-total-surface', 'result-total-price', 'total-price-unit-toggle', 
                 'eur-huf-rate', 'exchange-rate-chart-btn', 'price-per-kg', 'price-per-meter', 'price-unit-toggle-kg', 
-                'price-unit-toggle-m', 'saved-price-info', 'pdf-export-btn', 'manage-materials-btn', 'materials-modal', 
-                'chart-popup-overlay', 'chart-popup-content', 'chart-popup-title', 'chart-popup-body', 'chart-popup-controls',
-                'save-price-btn', 'new-material-name', 'new-material-density', 'add-material-btn', 'all-materials-list', 
+                'price-unit-toggle-m', 'manage-materials-btn', 'materials-modal', 
+                'chart-popup-overlay', 'chart-popup-content', 'chart-popup-title', 'chart-popup-body', 
+                'new-material-name', 'new-material-density', 'add-material-btn', 'all-materials-list', 
                 'editing-material-name', 'copyright-year'
             ];
             domIds.forEach(id => {
@@ -925,37 +888,38 @@
 
             const storage = {
                 saveState: () => {
-                    const stateToSave = { ...state, customMaterials: db.getCustomMaterials(), savedPrices: db.getSavedPrices() };
+                    const stateToSave = { ...state };
                     delete stateToSave.charts;
                     localStorage.setItem('steelCalcState', JSON.stringify(stateToSave));
                 },
                 loadState: () => {
                     const saved = localStorage.getItem('steelCalcState');
                     if (saved) {
-                        const loadedState = JSON.parse(saved);
-                        Object.assign(state, loadedState, { charts: { current: null } });
-                        db.init(loadedState.customMaterials, loadedState.savedPrices);
-                    } else {
-                        db.init();
+                        try {
+                            const loadedState = JSON.parse(saved);
+                            delete loadedState.savedPrices; // Legacy cleanup
+                            Object.assign(state, loadedState, { charts: { current: null } });
+                        } catch (e) {
+                            console.error("Could not load state, starting fresh.", e);
+                            localStorage.removeItem('steelCalcState');
+                        }
                     }
                 }
             };
             
-            async function fetchLatestExchangeRate() {
+            async function fetchExchangeRate() {
                 try {
-                    const rates = await db.getExchangeRates(1); // Fetch just the latest for the main input
-                    if (rates) {
-                        const latestDate = Object.keys(rates).pop();
-                        const latestRate = rates[latestDate]?.HUF;
-                        if (latestRate) {
-                            state.eurHufRate = latestRate;
-                            DOMElements.eurHufRate.value = state.eurHufRate.toFixed(2);
-                            storage.saveState();
-                            calculate();
-                        }
+                    const response = await fetch('https://api.frankfurter.app/latest?from=EUR&to=HUF');
+                    if (!response.ok) throw new Error('Network response not ok');
+                    const data = await response.json();
+                    if (data.rates && data.rates.HUF) {
+                        state.eurHufRate = data.rates.HUF;
+                        DOMElements.eurHufRate.value = state.eurHufRate.toFixed(2);
+                        storage.saveState();
+                        calculate();
                     }
                 } catch (error) {
-                    console.error('Could not fetch exchange rate, using stored value.', error);
+                    console.error('Could not fetch exchange rate.', error);
                 }
             }
 
@@ -969,7 +933,7 @@
             }
 
             function setLanguage(lang) {
-                if (!LANG[lang]) lang = LANG['en'] ? 'en' : 'hu';
+                if (!LANG[lang]) lang = 'hu';
                 state.lang = lang;
                 DOMElements.langSelector.value = lang;
                 document.documentElement.lang = lang;
@@ -988,7 +952,6 @@
                 populateProductTypeSelect();
                 populateMaterialSelect();
                 updateDimensionFields();
-                updateLatestSavedPriceDisplay();
                 storage.saveState();
             }
 
@@ -1002,7 +965,7 @@
             
             function populateMaterialSelect() {
                 DOMElements.materialSelectOptions.innerHTML = '';
-                const allMaterials = { ...MATERIAL_DENSITIES, ...db.getCustomMaterials() };
+                const allMaterials = { ...MATERIAL_DENSITIES, ...state.customMaterials };
                 const createOption = (key) => {
                     const li = document.createElement('li');
                     li.className = 'option';
@@ -1036,7 +999,7 @@
                 };
                 
                 createGroup('favorites', state.favorites, true);
-                createGroup('customMaterials', Object.keys(db.getCustomMaterials()).filter(k => !state.favorites.includes(k)));
+                createGroup('customMaterials', Object.keys(state.customMaterials).filter(k => !state.favorites.includes(k)));
                 Object.keys(MATERIAL_GROUPS).forEach(groupKey => {
                     const members = MATERIAL_GROUPS[groupKey].filter(k => !state.favorites.includes(k) && MATERIAL_DENSITIES[k]);
                     if(members.length > 0) createGroup(groupKey, members);
@@ -1053,7 +1016,7 @@
                 if (!materialName) return;
                 state.selectedMaterial = materialName;
                 
-                const allMaterials = { ...MATERIAL_DENSITIES, ...db.getCustomMaterials() };
+                const allMaterials = { ...MATERIAL_DENSITIES, ...state.customMaterials };
                 const density = allMaterials[materialName];
                 DOMElements.materialSelectDisplay.textContent = density ? `${materialName} (${density} kg/m³)` : materialName;
                 
@@ -1062,7 +1025,6 @@
                 if(optionEl) optionEl.classList.add('selected');
 
                 updateFavoriteButtonState();
-                updateLatestSavedPriceDisplay();
                 calculate();
                 storage.saveState();
             }
@@ -1214,7 +1176,7 @@
             function calculate() {
                 const productType = DOMElements.productTypeSelect.value;
                 const materialName = state.selectedMaterial;
-                const allMaterials = { ...MATERIAL_DENSITIES, ...db.getCustomMaterials() };
+                const allMaterials = { ...MATERIAL_DENSITIES, ...state.customMaterials };
                 const density = allMaterials[materialName] || 0;
                 const dims = getDimensions();
                 const lengthMm = parseFloat(DOMElements.lengthInput.value) || 0;
@@ -1224,14 +1186,33 @@
                 const weightPerMeter = crossSectionMm2 / 1000000 * density;
                 const surfaceAreaPerMeter = calculateSurfaceAreaPerMeter(productType, dims);
                 
-                DOMElements.resultCrossSection.innerText = (state.crossSectionUnit === 'm2') ? (crossSectionMm2 / 1000000).toExponential(3) : crossSectionMm2.toFixed(2);
-                DOMElements.crossSectionUnitToggle.innerText = (state.crossSectionUnit === 'm2') ? 'm²' : 'mm²';
-                DOMElements.resultWeightMeter.innerText = weightPerMeter.toFixed(3);
-                DOMElements.resultSurfaceArea.innerText = surfaceAreaPerMeter.toFixed(4);
-                DOMElements.resultTotalWeight.innerText = (weightPerMeter * lengthM).toFixed(3);
-                const endCapAreaM2 = 2 * (crossSectionMm2 / 1000000);
-                DOMElements.resultTotalSurface.innerText = (surfaceAreaPerMeter * lengthM + (lengthM > 0 ? endCapAreaM2 : 0)).toFixed(4);
+                const perMeterFields = [DOMElements.resultCrossSection, DOMElements.resultWeightMeter, DOMElements.resultSurfaceArea];
+                const totalFields = [DOMElements.resultTotalWeight, DOMElements.resultTotalSurface, DOMElements.resultTotalPrice];
+
+                if (weightPerMeter > 0) {
+                    DOMElements.perMeterResultsSection.classList.remove('results-disabled');
+                    DOMElements.resultCrossSection.innerText = (state.crossSectionUnit === 'm2') ? (crossSectionMm2 / 1000000).toExponential(3) : crossSectionMm2.toFixed(2);
+                    DOMElements.resultWeightMeter.innerText = weightPerMeter.toFixed(3);
+                    DOMElements.resultSurfaceArea.innerText = surfaceAreaPerMeter.toFixed(4);
+
+                    if (lengthM > 0) {
+                        DOMElements.totalResultsSection.classList.remove('results-disabled');
+                        const endCapAreaM2 = 2 * (crossSectionMm2 / 1000000);
+                        DOMElements.resultTotalWeight.innerText = (weightPerMeter * lengthM).toFixed(3);
+                        DOMElements.resultTotalSurface.innerText = (surfaceAreaPerMeter * lengthM + endCapAreaM2).toFixed(4);
+                    } else {
+                        DOMElements.totalResultsSection.classList.add('results-disabled');
+                        totalFields.forEach(field => field.innerText = '');
+                    }
+
+                } else {
+                    DOMElements.perMeterResultsSection.classList.add('results-disabled');
+                    DOMElements.totalResultsSection.classList.add('results-disabled');
+                    perMeterFields.forEach(field => field.innerText = '');
+                    totalFields.forEach(field => field.innerText = '');
+                }
                 
+                DOMElements.crossSectionUnitToggle.innerText = (state.crossSectionUnit === 'm2') ? 'm²' : 'mm²';
                 updatePrices();
             }
 
@@ -1266,9 +1247,11 @@
                     DOMElements.pricePerMeter.value = valuePerMeterCurrentCurrency > 0 ? valuePerMeterCurrentCurrency.toFixed(2) : '';
                 }
 
-                const totalPriceHuf = state.priceHufKg * weightPerMeter * lengthM;
-                const totalPriceCurrentCurrency = state.priceCurrency === 'HUF' ? totalPriceHuf : (rate > 0 ? totalPriceHuf / rate : 0);
-                DOMElements.resultTotalPrice.innerText = totalPriceCurrentCurrency.toFixed(2);
+                if (weightPerMeter > 0 && lengthM > 0) {
+                    const totalPriceHuf = state.priceHufKg * weightPerMeter * lengthM;
+                    const totalPriceCurrentCurrency = state.priceCurrency === 'HUF' ? totalPriceHuf : (rate > 0 ? totalPriceHuf / rate : 0);
+                    DOMElements.resultTotalPrice.innerText = totalPriceCurrentCurrency.toFixed(2);
+                }
 
                 [DOMElements.priceUnitToggleKg, DOMElements.priceUnitToggleM, DOMElements.totalPriceUnitToggle].forEach(el => el.innerText = state.priceCurrency);
             }
@@ -1284,12 +1267,12 @@
                 }
                 
                 if (editingName && editingName !== name) {
-                    db.deleteCustomMaterial(editingName);
+                    delete state.customMaterials[editingName];
                     const favIndex = state.favorites.indexOf(editingName);
                     if (favIndex > -1) state.favorites[favIndex] = name;
                 }
 
-                db.saveCustomMaterial(name, density);
+                state.customMaterials[name] = density;
                 storage.saveState();
                 renderAllMaterialsList();
                 populateMaterialSelect();
@@ -1300,10 +1283,9 @@
             function renderAllMaterialsList() {
                 DOMElements.allMaterialsList.innerHTML = '';
                 const lang = state.lang;
-                const customMaterials = db.getCustomMaterials();
-                const allMaterials = { ...customMaterials, ...MATERIAL_DENSITIES };
+                const allMaterials = { ...state.customMaterials, ...MATERIAL_DENSITIES };
                 Object.keys(allMaterials).sort((a,b) => a.localeCompare(b)).forEach(name => {
-                    const isCustom = !!customMaterials[name];
+                    const isCustom = !!state.customMaterials[name];
                     const isFavorite = state.favorites.includes(name);
                     const li = document.createElement('li');
                     li.className = 'material-list-item';
@@ -1324,29 +1306,30 @@
                 });
             }
 
-            function openChartPopup(titleKey, contentGenerator) {
-                DOMElements.chartPopupTitle.innerText = LANG[state.lang][titleKey] || titleKey;
-                DOMElements.chartPopupControls.innerHTML = '';
+            function openChartPopup(title, contentGenerator) {
+                DOMElements.chartPopupTitle.innerText = title;
                 DOMElements.chartPopupBody.innerHTML = '';
                 contentGenerator(DOMElements.chartPopupBody);
                 openModal(DOMElements.chartPopupOverlay);
             }
             
-            async function showExchangeRateChart(container, period = 30) {
-                DOMElements.chartPopupTitle.innerText = LANG[state.lang].exchangeRateChart;
-                DOMElements.chartPopupControls.innerHTML = [30, 90, 365].map(p => 
-                    `<button class="control-btn ${p === period ? 'active' : ''}" data-period="${p}">${LANG[state.lang].period[p]}</button>`
-                ).join('');
-
-                container.innerHTML = '<canvas id="exchange-rate-canvas"></canvas>';
-                const canvas = document.getElementById('exchange-rate-canvas');
+            async function showExchangeRateChart(container) {
+                const canvas = document.createElement('canvas');
+                container.appendChild(canvas);
                 
                 if (state.charts.current) state.charts.current.destroy();
 
+                const endDate = new Date();
+                const startDate = new Date();
+                startDate.setDate(endDate.getDate() - 30);
+                const formatDate = (date) => date.toISOString().split('T')[0];
+
                 try {
-                    const rates = await db.getExchangeRates(period);
-                    if (!rates) throw new Error('No rates data');
+                    const response = await fetch(`https://api.frankfurter.app/${formatDate(startDate)}..${formatDate(endDate)}?from=EUR&to=HUF`);
+                    if (!response.ok) throw new Error('Network error');
+                    const data = await response.json();
                     
+                    const rates = data.rates;
                     const sortedDates = Object.keys(rates).sort((a, b) => new Date(a) - new Date(b));
                     const labels = sortedDates;
                     const chartData = sortedDates.map(date => rates[date].HUF);
@@ -1358,124 +1341,11 @@
 
                     state.charts.current = new Chart(ctx, {
                         type: 'line',
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                label: 'EUR/HUF',
-                                data: chartData,
-                                borderColor: 'var(--bg-accent)',
-                                backgroundColor: gradient,
-                                tension: 0.2,
-                                fill: true,
-                                pointRadius: 0
-                            }]
-                        },
-                        options: { 
-                            responsive: true,
-                            maintainAspectRatio: true,
-                            interaction: { mode: 'index', intersect: false },
-                            plugins: {
-                                legend: { display: false },
-                                tooltip: {
-                                    callbacks: {
-                                        label: (context) => context.parsed.y !== null ? `${context.dataset.label}: ${context.parsed.y.toFixed(2)} HUF` : ''
-                                    }
-                                }
-                            },
-                            scales: { x: { grid: { display: false } }, y: { grid: { color: 'var(--border-color)' } } }
-                        }
+                        data: { labels, datasets: [{ label: 'EUR/HUF', data: chartData, borderColor: 'var(--bg-accent)', backgroundColor: gradient, tension: 0.2, fill: true, pointRadius: 0 }] },
+                        options: { responsive: true, maintainAspectRatio: true, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { grid: { color: 'var(--border-color)' } } } }
                     });
                 } catch (error) {
                     container.innerText = 'Hiba az árfolyamadatok lekérése közben.';
-                    console.error("Failed to fetch historical exchange rates", error);
-                }
-            }
-
-            function showSavedPricesChart(container) {
-                if (state.charts.current) state.charts.current.destroy();
-                container.innerHTML = `<canvas id="saved-prices-canvas"></canvas>
-                                       <ul id="saved-prices-list" class="material-list" style="margin-top:1rem;max-height:150px;"></ul>`;
-
-                const canvas = document.getElementById('saved-prices-canvas');
-                const listContainer = document.getElementById('saved-prices-list');
-                
-                const currentMaterial = state.selectedMaterial;
-                const filteredPrices = db.getSavedPrices()
-                    .map((p, index) => ({ ...p, originalIndex: index }))
-                    .filter(p => p.material === currentMaterial)
-                    .sort((a, b) => new Date(a.date) - new Date(b.date));
-                
-                renderSavedPricesList(listContainer, filteredPrices);
-
-                const labels = filteredPrices.map(p => p.date);
-                const chartData = filteredPrices.map(p => p.price);
-                
-                const ctx = canvas.getContext('2d');
-                const gradient = ctx.createLinearGradient(0, 0, 0, 200);
-                gradient.addColorStop(0, 'rgba(255, 193, 7, 0.4)');
-                gradient.addColorStop(1, 'rgba(255, 193, 7, 0)');
-                
-                state.charts.current = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: `${currentMaterial} (HUF/kg)`,
-                            data: chartData,
-                            borderColor: 'var(--industrial-accent)',
-                            backgroundColor: gradient,
-                            stepped: true,
-                            fill: true,
-                        }]
-                    },
-                    options: { 
-                        responsive: true, 
-                        maintainAspectRatio: true,
-                        plugins: { legend: { display: true } },
-                        scales: { x: { grid: { display: false } }, y: { grid: { color: 'var(--border-color)' } } }
-                    }
-                });
-            }
-            
-            function renderSavedPricesList(listElement, prices) {
-                listElement.innerHTML = '';
-                if (prices.length === 0) {
-                    listElement.innerHTML = `<li class="material-list-item">${LANG[state.lang].noSavedPrice}</li>`;
-                    return;
-                }
-                prices.forEach((price) => {
-                    const li = document.createElement('li');
-                    li.className = 'material-list-item';
-                    li.innerHTML = `
-                        <span>${price.date}: <strong>${price.price.toFixed(2)} HUF/kg</strong></span>
-                        <div class="material-actions">
-                            <button class="delete-saved-price-btn" data-original-index="${price.originalIndex}" title="${LANG[state.lang].delete}">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                            </button>
-                        </div>
-                    `;
-                    listElement.appendChild(li);
-                });
-            }
-            
-            function updateLatestSavedPriceDisplay() {
-                 const currentMaterial = state.selectedMaterial;
-                 const latestPrice = db.getSavedPrices()
-                    .filter(p => p.material === currentMaterial)
-                    .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
-                
-                DOMElements.savedPriceInfo.innerHTML = '';
-                if(latestPrice) {
-                    DOMElements.savedPriceInfo.innerHTML = `
-                        <div>
-                            <span style="color: var(--text-secondary);">${LANG[state.lang].latestSavedPrice}: </span>
-                            <strong>${latestPrice.price.toFixed(2)} HUF/kg</strong> (${latestPrice.date})
-                        </div>
-                        <button id="saved-prices-chart-btn" class="control-btn" data-lang-title="savedPricesChart">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-                        </button>`;
-                } else {
-                    DOMElements.savedPriceInfo.innerHTML = `<span class="placeholder">${LANG[state.lang].noSavedPrice}</span>`;
                 }
             }
 
@@ -1491,84 +1361,20 @@
                     const mouseMoveHandler = (e) => {
                         const containerRect = main.getBoundingClientRect();
                         const minWidth = 350;
-                        const resizerWidth = resizer.offsetWidth;
                         let newLeftWidth = e.clientX - containerRect.left;
                         if (newLeftWidth < minWidth) newLeftWidth = minWidth;
-                        const maxLeftWidth = containerRect.width - minWidth - resizerWidth;
+                        const maxLeftWidth = containerRect.width - minWidth - resizer.offsetWidth;
                         if (newLeftWidth > maxLeftWidth) newLeftWidth = maxLeftWidth;
-                        main.style.gridTemplateColumns = `${newLeftWidth}px ${resizerWidth}px 1fr`;
+                        main.style.gridTemplateColumns = `${newLeftWidth}px 10px 1fr`;
                     };
-
                     const mouseUpHandler = () => {
-                        document.body.style.cursor = '';
-                        document.body.style.userSelect = '';
+                        document.body.style.cursor = ''; document.body.style.userSelect = '';
                         window.removeEventListener('mousemove', mouseMoveHandler);
                         window.removeEventListener('mouseup', mouseUpHandler);
                     };
-
                     window.addEventListener('mousemove', mouseMoveHandler);
                     window.addEventListener('mouseup', mouseUpHandler);
                 });
-            }
-
-            function generatePDF() {
-                const doc = new jsPDF();
-                const lang = state.lang;
-                const allMaterials = { ...MATERIAL_DENSITIES, ...db.getCustomMaterials() };
-
-                doc.setFontSize(18);
-                doc.text(LANG[lang].pdfTitle, 14, 22);
-                doc.setFontSize(11);
-                doc.setTextColor(100);
-                doc.text(`${LANG[lang].pdfDate}: ${new Date().toLocaleString()}`, 14, 28);
-                
-                let y = 40;
-                const writeSection = (title, data) => {
-                    doc.setFontSize(14);
-                    doc.text(title, 14, y);
-                    y += 7;
-                    doc.setFontSize(10);
-                    Object.entries(data).forEach(([key, value]) => {
-                        doc.text(`${key}:`, 16, y);
-                        doc.text(String(value), 80, y);
-                        y+= 5;
-                    });
-                    y += 5;
-                };
-
-                const inputData = {
-                    [LANG[lang].material]: `${state.selectedMaterial} (${allMaterials[state.selectedMaterial]} kg/m³)`,
-                    [LANG[lang].productType]: LANG[lang][DOMElements.productTypeSelect.value],
-                    [LANG[lang].length]: `${DOMElements.lengthInput.value} mm`
-                };
-                writeSection(LANG[lang].pdfInputParams, inputData);
-
-                const dims = getDimensions();
-                const dimData = {};
-                Object.keys(dims).forEach(key => {
-                    dimData[LANG[lang][key] || key] = `${dims[key]} mm`;
-                });
-                writeSection(LANG[lang].pdfDimensions, dimData);
-
-                const resultsData = {
-                    [LANG[lang].crossSection]: `${DOMElements.resultCrossSection.innerText} ${DOMElements.crossSectionUnitToggle.innerText}`,
-                    [LANG[lang].weightPerMeter]: `${DOMElements.resultWeightMeter.innerText} kg/m`,
-                    [LANG[lang].surfacePerMeter]: `${DOMElements.resultSurfaceArea.innerText} m²/m`,
-                    [LANG[lang].totalWeight]: `${DOMElements.resultTotalWeight.innerText} kg`,
-                    [LANG[lang].totalSurface]: `${DOMElements.resultTotalSurface.innerText} m²`,
-                };
-                writeSection(LANG[lang].pdfCalcResults, resultsData);
-
-                const priceData = {
-                    [LANG[lang].pdfCurrency]: state.priceCurrency,
-                    [LANG[lang].pdfExchangeRate]: `1 EUR = ${state.eurHufRate.toFixed(2)} HUF`,
-                    [`${LANG[lang].pricePerKg} (${state.priceCurrency})`]: DOMElements.pricePerKg.value,
-                    [`${LANG[lang].pricePerMeter} (${state.priceCurrency})`]: DOMElements.pricePerMeter.value,
-                    [`${LANG[lang].totalPrice} (${state.priceCurrency})`]: DOMElements.resultTotalPrice.innerText,
-                };
-                writeSection(LANG[lang].pdfPriceInfo, priceData);
-
-                doc.save(`Metal_Calculator_${new Date().toISOString().split('T')[0]}.pdf`);
             }
 
             // --- EVENT LISTENERS ---
@@ -1577,71 +1383,54 @@
                 DOMElements.themeToggle.addEventListener('click', () => applyTheme(state.theme === 'light' ? 'dark' : 'light'));
                 DOMElements.crossSectionUnitToggle.addEventListener('click', () => {
                     state.crossSectionUnit = state.crossSectionUnit === 'mm2' ? 'm2' : 'mm2';
-                    storage.saveState();
-                    calculate();
+                    storage.saveState(); calculate();
                 });
                 DOMElements.favoriteToggleBtn.addEventListener('click', () => {
                     const name = state.selectedMaterial;
                     const index = state.favorites.indexOf(name);
-                    if (index > -1) state.favorites.splice(index, 1);
-                    else state.favorites.push(name);
-                    storage.saveState();
-                    populateMaterialSelect();
-                    updateFavoriteButtonState();
+                    if (index > -1) state.favorites.splice(index, 1); else state.favorites.push(name);
+                    storage.saveState(); populateMaterialSelect(); updateFavoriteButtonState();
                 });
                  DOMElements.productFavoriteToggleBtn.addEventListener('click', () => {
                     const name = DOMElements.productTypeSelect.value;
                     const index = state.productFavorites.indexOf(name);
-                    if (index > -1) state.productFavorites.splice(index, 1);
-                    else state.productFavorites.push(name);
-                    storage.saveState();
-                    populateProductTypeSelect();
+                    if (index > -1) state.productFavorites.splice(index, 1); else state.productFavorites.push(name);
+                    storage.saveState(); populateProductTypeSelect();
                 });
                 DOMElements.materialSelectDisplay.addEventListener('click', () => DOMElements.materialSelectOptions.classList.toggle('open'));
                 document.addEventListener('click', (e) => {
-                    if (!DOMElements.materialSelectCustom.contains(e.target)) {
-                        DOMElements.materialSelectOptions.classList.remove('open');
-                    }
+                    if (!DOMElements.materialSelectCustom.contains(e.target)) DOMElements.materialSelectOptions.classList.remove('open');
                 });
                 DOMElements.materialSelectOptions.addEventListener('click', (e) => {
                     if (e.target.classList.contains('group-header')) {
-                        e.target.classList.toggle('expanded');
-                        e.target.nextElementSibling.classList.toggle('expanded');
+                        e.target.classList.toggle('expanded'); e.target.nextElementSibling.classList.toggle('expanded');
                     } else if (e.target.classList.contains('option')) {
-                        selectMaterial(e.target.dataset.value);
-                        DOMElements.materialSelectOptions.classList.remove('open');
+                        selectMaterial(e.target.dataset.value); DOMElements.materialSelectOptions.classList.remove('open');
                     }
                 });
                 DOMElements.productTypeSelect.addEventListener('change', () => {
-                    updateDimensionFields();
-                    updateProductFavoriteButtonState();
+                    updateDimensionFields(); updateProductFavoriteButtonState();
                 });
                 DOMElements.standardSizeSelect.addEventListener('change', fillDimensionsFromStandardSize);
                 
-                const mainInputs = [DOMElements.dimensionFields, DOMElements.lengthInput, DOMElements.eurHufRate, DOMElements.pricePerKg, DOMElements.pricePerMeter];
-                mainInputs.forEach(el => el.addEventListener('input', (e) => {
-                    if (e.target.matches('.dimension-input') || e.target.id === 'length-input') {
-                         if (e.target.matches('.dimension-input')) DOMElements.standardSizeSelect.value = "";
-                        calculate();
-                    } else if (e.target.matches('.price-input')) {
-                        updatePrices(e);
-                    } else if (e.target.id === 'eur-huf-rate') {
-                        state.eurHufRate = parseFloat(e.target.value) || 0;
-                        storage.saveState();
-                        updatePrices();
+                DOMElements.dimensionFields.addEventListener('input', (e) => {
+                    if (e.target.matches('.dimension-input')) {
+                        DOMElements.standardSizeSelect.value = ""; calculate();
                     }
-                }));
+                });
+                DOMElements.lengthInput.addEventListener('input', calculate);
+                DOMElements.eurHufRate.addEventListener('input', (e) => {
+                    state.eurHufRate = parseFloat(e.target.value) || 0;
+                    storage.saveState(); updatePrices();
+                });
+                [DOMElements.pricePerKg, DOMElements.pricePerMeter].forEach(el => el.addEventListener('input', (e) => updatePrices(e)));
 
                 [DOMElements.priceUnitToggleKg, DOMElements.priceUnitToggleM, DOMElements.totalPriceUnitToggle].forEach(el => el.addEventListener('click', () => {
                     state.priceCurrency = state.priceCurrency === 'HUF' ? 'EUR' : 'HUF';
-                    storage.saveState();
-                    updatePrices();
+                    storage.saveState(); updatePrices();
                 }));
 
-                DOMElements.manageMaterialsBtn.addEventListener('click', () => {
-                    renderAllMaterialsList();
-                    openModal(DOMElements.materialsModal);
-                });
+                DOMElements.manageMaterialsBtn.addEventListener('click', () => { renderAllMaterialsList(); openModal(DOMElements.materialsModal); });
                 DOMElements.addMaterialBtn.addEventListener('click', handleAddOrUpdateMaterial);
                 DOMElements.materialsModal.querySelector('.modal-close-btn').addEventListener('click', () => closeModal(DOMElements.materialsModal));
 
@@ -1651,79 +1440,28 @@
                     const name = target.dataset.name;
                     if (target.classList.contains('favorite-btn')) {
                         const index = state.favorites.indexOf(name);
-                        if (index > -1) state.favorites.splice(index, 1);
-                        else state.favorites.push(name);
-                        storage.saveState();
-                        renderAllMaterialsList();
-                        populateMaterialSelect();
+                        if (index > -1) state.favorites.splice(index, 1); else state.favorites.push(name);
+                        storage.saveState(); renderAllMaterialsList(); populateMaterialSelect();
                     } else if (target.classList.contains('edit-material-btn')) {
                         DOMElements.newMaterialName.value = name;
-                        DOMElements.newMaterialDensity.value = db.getCustomMaterials()[name];
+                        DOMElements.newMaterialDensity.value = state.customMaterials[name];
                         DOMElements.editingMaterialName.value = name;
                         DOMElements.addMaterialBtn.innerText = LANG[state.lang].save;
                     } else if (target.classList.contains('delete-material-btn')) {
                         if (confirm(`Biztosan törli a(z) "${name}" anyagot?`)) {
-                            db.deleteCustomMaterial(name);
+                            delete state.customMaterials[name];
                             state.favorites = state.favorites.filter(fav => fav !== name);
                             storage.saveState();
-                            renderAllMaterialsList();
-                            populateMaterialSelect();
+                            renderAllMaterialsList(); populateMaterialSelect();
                         }
                     }
                 });
                 
-                DOMElements.exchangeRateChartBtn.addEventListener('click', () => openChartPopup('exchangeRateChart', (container) => showExchangeRateChart(container, 30)));
+                DOMElements.exchangeRateChartBtn.addEventListener('click', () => openChartPopup(LANG[state.lang].exchangeRateChart, showExchangeRateChart));
                 
-                DOMElements.savedPriceInfo.addEventListener('click', (e) => {
-                    if(e.target.closest('#saved-prices-chart-btn')) {
-                        openChartPopup('savedPricesChart', showSavedPricesChart);
-                    }
-                });
-                
-                DOMElements.chartPopupControls.addEventListener('click', (e) => {
-                    const target = e.target.closest('button[data-period]');
-                    if (target) {
-                        const period = parseInt(target.dataset.period, 10);
-                        showExchangeRateChart(DOMElements.chartPopupBody, period);
-                    }
-                });
-
                 DOMElements.chartPopupOverlay.addEventListener('click', function(e) {
-                    if (e.target === this || e.target.classList.contains('modal-close-btn')) {
-                        closeModal(this);
-                    }
+                    if (e.target === this || e.target.classList.contains('modal-close-btn')) closeModal(this);
                 });
-
-                DOMElements.chartPopupBody.addEventListener('click', (e) => {
-                    const deleteBtn = e.target.closest('.delete-saved-price-btn');
-                    if(deleteBtn) {
-                         const indexToDelete = parseInt(deleteBtn.dataset.originalIndex, 10);
-                         if (confirm(LANG[state.lang].confirmDeletePrice)) {
-                             db.deleteSavedPrice(indexToDelete);
-                             storage.saveState();
-                             showSavedPricesChart(DOMElements.chartPopupBody);
-                             updateLatestSavedPriceDisplay();
-                         }
-                    }
-                });
-
-                DOMElements.savePriceBtn.addEventListener('click', () => {
-                    const priceToSave = state.priceHufKg;
-                    if(priceToSave && priceToSave > 0 && isFinite(priceToSave)) {
-                        db.savePrice({
-                            date: new Date().toISOString().split('T')[0],
-                            material: state.selectedMaterial,
-                            price: priceToSave
-                        });
-                        storage.saveState();
-                        updateLatestSavedPriceDisplay();
-                        const originalText = DOMElements.savePriceBtn.textContent;
-                        DOMElements.savePriceBtn.textContent = LANG[state.lang].priceSaved;
-                        setTimeout(() => { DOMElements.savePriceBtn.textContent = originalText; }, 2000);
-                    }
-                });
-
-                DOMElements.pdfExportBtn.addEventListener('click', generatePDF);
             }
 
             // --- INITIALIZATION ---
@@ -1742,16 +1480,16 @@
                 const preferredTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
                 applyTheme(state.theme || preferredTheme);
 
+                DOMElements.eurHufRate.value = state.eurHufRate.toFixed(2);
                 DOMElements.copyrightYear.textContent = new Date().getFullYear();
                 
-                fetchLatestExchangeRate();
+                fetchExchangeRate();
                 initResizer();
                 setupEventListeners();
                 calculate();
             }
 
             init();
-
         });
     </script>
 
